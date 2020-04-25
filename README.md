@@ -1,4 +1,6 @@
-Chisel Project Template
+Chisel hardware description.
+
+This project contains Chisel Project Template(https://github.com/freechipsproject/chisel-template)
 
 ## License
 This is free and unencumbered software released into the public domain.
