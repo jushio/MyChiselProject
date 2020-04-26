@@ -1,0 +1,83 @@
+  // See README.md for license details.
+
+package intro
+
+import scala.math.ceil
+
+import chisel3._
+import chisel3.util._
+
+// clock rate : 20 MHz
+// parity     : not supported
+// tx order   : data is sent from LSB
+// input      : 
+//  data_rate: 
+//             1:   9600bps 
+//             2:  19200bps
+//             4:  38400bps
+//             6:  57600bps
+//            12: 115200bps 
+class UART_TX(data_rate_type: Int) extends Module {
+  val DATA_WIDTH  = 8
+  val CLK_RATE    = 20000000
+  val count = ceil(1.0f * CLK_RATE / (9600 * data_rate_type)) toInt
+  
+  val io = IO(new Bundle{
+    val TX    = Output(Bool())
+    val DI    = Flipped(Decoupled(UInt(DATA_WIDTH.W)))
+    val BUSY  = Output(Bool())
+  })
+
+
+  // wire 
+  val update_timing = WireInit(false.B) 
+  val tx_end        = WireInit(false.B) 
+  // regs
+  val data              = RegInit(0.U((DATA_WIDTH+1).W))  // {send_data, 1'b0}
+  val busy              = RegInit(false.B)
+  val update_timing_cnt = UART_TX.counter((count - 1).U, busy, !busy)
+  val data_cnt          = UART_TX.counter((DATA_WIDTH).U, update_timing, !busy)
+
+  //---------------
+  // assign 
+  //---------------
+  // port
+  io.BUSY         := busy
+  io.DI.ready     := busy
+  io.TX           := true.B
+  when (busy) { 
+    io.TX         := data(data_cnt)
+  } 
+  // internal
+  update_timing   := busy & (update_timing_cnt === (count - 1).U)
+  tx_end          := busy & (data_cnt === (DATA_WIDTH).U) & update_timing
+
+  //---------------
+  // State 
+  //---------------
+  // busy
+  when (tx_end) {
+    busy := false.B
+  }.elsewhen(!busy & io.DI.valid) {
+    busy := true.B
+  }
+
+  // data
+  when (!busy & io.DI.valid) {
+    data := Cat(io.DI.bits, false.B)
+  }
+}
+
+object UART_TX extends App {
+  chisel3.Driver.execute(args, () => new UART_TX(12))
+
+  def counter(max: UInt, ena: Bool, clear: Bool) = {
+    val x = RegInit(0.asUInt(max.getWidth.W))
+    when(clear) {
+      x := 0.U
+    }.elsewhen(ena){
+      x := Mux(x === max, 0.U, x + 1.U)
+    }
+    x
+  }
+}
