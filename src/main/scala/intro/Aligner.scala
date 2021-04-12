@@ -21,7 +21,8 @@ class Aligner(val data_width: Int, val num: Int) extends Module {
     when (v.en) {
       io.outgoing(i).en := v.en
       io.outgoing(i).data := v.data
-      i = i + 1.U //
+      //i = i + 1.U //
+      i = i + v.en //
     }
   }
 }
