@@ -7,7 +7,7 @@ import scala.math.ceil
 import chisel3._
 import chisel3.util._
 
-// clock rate : 20 MHz
+// clock rate : 100 MHz
 // parity     : not supported
 // tx order   : data is sent from LSB
 // input      : 
@@ -19,8 +19,8 @@ import chisel3.util._
 //            12: 115200bps 
 class UART_TX(data_rate_type: Int) extends Module {
   val DATA_WIDTH  = 8
-  val CLK_RATE    = 20000000
-  val count = ceil(1.0f * CLK_RATE / (9600 * data_rate_type)) toInt
+  val CLK_RATE    = 100000000
+  val count = ceil((1.0f * CLK_RATE) / (9600 * data_rate_type)) toInt
   
   val io = IO(new Bundle{
     val TX    = Output(Bool())
@@ -33,11 +33,11 @@ class UART_TX(data_rate_type: Int) extends Module {
   val update_timing = WireInit(false.B) 
   val tx_end        = WireInit(false.B) 
   // regs
-  val data              = RegInit(0.U((DATA_WIDTH+1).W))  // {send_data, 1'b0}
+  val data              = RegInit(~0.U((DATA_WIDTH+2).W))  // {start, send_data}
   val busy              = RegInit(false.B)
   val update_timing_cnt = UART_TX.counter((count - 1).U, busy, !busy)
-  val data_cnt          = UART_TX.counter((DATA_WIDTH).U, update_timing, !busy)
-
+  val data_cnt          = UART_TX.counter((DATA_WIDTH+1).U, update_timing, !busy)
+  val data_rd_idx       = (DATA_WIDTH+1).U - data_cnt ;
   //---------------
   // assign 
   //---------------
@@ -46,11 +46,14 @@ class UART_TX(data_rate_type: Int) extends Module {
   io.DI.ready     := busy
   io.TX           := true.B
   when (busy) { 
-    io.TX         := data(data_cnt)
+    // Send From MSB
+    io.TX         := data(data_rd_idx)
+  }.otherwise {
+    io.TX         := true.B
   } 
   // internal
   update_timing   := busy & (update_timing_cnt === (count - 1).U)
-  tx_end          := busy & (data_cnt === (DATA_WIDTH).U) & update_timing
+  tx_end          := busy & (data_cnt === (DATA_WIDTH+1).U) & update_timing
 
   //---------------
   // State 
@@ -64,7 +67,7 @@ class UART_TX(data_rate_type: Int) extends Module {
 
   // data
   when (!busy & io.DI.valid) {
-    data := Cat(io.DI.bits, false.B)
+    data := Cat(false.B, io.DI.bits, true.B)
   }
 }
 
