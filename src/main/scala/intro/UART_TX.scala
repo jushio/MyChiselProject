@@ -17,9 +17,8 @@ import chisel3.util._
 //             4:  38400bps
 //             6:  57600bps
 //            12: 115200bps 
-class UART_TX(data_rate_type: Int) extends Module {
+class UART_TX(data_rate_type: Int, CLK_RATE: Int = 100000000) extends Module {
   val DATA_WIDTH  = 8
-  val CLK_RATE    = 100000000
   val count = ceil((1.0f * CLK_RATE) / (9600 * data_rate_type)) toInt
   
   val io = IO(new Bundle{
@@ -43,7 +42,7 @@ class UART_TX(data_rate_type: Int) extends Module {
   //---------------
   // port
   io.BUSY         := busy
-  io.DI.ready     := busy
+  io.DI.ready     := !busy
   io.TX           := true.B
   when (busy) { 
     // Send From MSB
