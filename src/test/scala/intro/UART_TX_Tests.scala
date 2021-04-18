@@ -12,7 +12,7 @@ class UART_TXTests(c: UART_TX) extends PeekPokeTester(c) {
   val R = 19200.0
   val T = 9600.0
   val count = ceil(R/T) toInt
-  val data_in = 0xaa
+  val data_in = 0x55
 
   // Check initial output
   expect(c.io.BUSY, 0)

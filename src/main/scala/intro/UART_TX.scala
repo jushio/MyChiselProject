@@ -46,7 +46,8 @@ class UART_TX(data_rate_type: Int, CLK_RATE: Int = 100000000) extends Module {
   io.TX           := true.B
   when (busy) { 
     // Send From MSB
-    io.TX         := data(data_rd_idx)
+    // io.TX         := data(data_rd_idx)
+    io.TX         := data(data_cnt)
   }.otherwise {
     io.TX         := true.B
   } 
@@ -66,7 +67,8 @@ class UART_TX(data_rate_type: Int, CLK_RATE: Int = 100000000) extends Module {
 
   // data
   when (!busy & io.DI.valid) {
-    data := Cat(false.B, io.DI.bits, true.B)
+    // data := Cat(false.B, io.DI.bits, true.B)
+    data := Cat(true.B, io.DI.bits, false.B)
   }
 }
 
